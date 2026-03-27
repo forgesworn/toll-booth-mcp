@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Payment History</title>
+<style>
+  :root { --ink:#0f1111; --bg:#fff; --card-bg:#f8f9fa; --border:#e0e0e0; --accent:#2563eb; --accent-light:#93bbfd; color-scheme:light; }
+  :root.dark { --ink:#e6e6e6; --bg:#1a1a2e; --card-bg:#252540; --border:#3a3a5a; --accent:#60a5fa; --accent-light:#3b82f6; color-scheme:dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font: 18px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--ink); padding: 20px; }
+  h1 { font-size: 24px; font-weight: 700; margin-bottom: 16px; }
+  .chart-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 20px; overflow-x: auto; }
+  .chart-container svg { display: block; width: 100%; height: auto; }
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .stat { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; text-align: center; }
+  .stat-value { font-size: 26px; font-weight: 700; color: var(--accent); }
+  .stat-label { font-size: 14px; opacity: 0.7; margin-top: 2px; }
+  .btn { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+  .btn:hover { opacity: 0.85; }
+  .empty { text-align: center; padding: 40px; opacity: 0.6; font-size: 18px; }
+</style>
+</head>
+<body>
+<h1>Payment History</h1>
+<div id="root">
+  <div class="empty">Connecting...</div>
+</div>
+<script type="module">
+/*__EXT_APPS_BUNDLE__*/
+const { App } = globalThis.ExtApps;
+
+function formatSats(n) {
+  return n.toLocaleString() + " sats";
+}
+
+function escapeText(s) {
+  const el = document.createElement("span");
+  el.textContent = s;
+  return el.textContent;
+}
+
+function render(data) {
+  const root = document.getElementById("root");
+
+  // Clear previous content safely
+  while (root.firstChild) root.removeChild(root.firstChild);
+
+  if (!data || !data.days || data.days.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "No payment data for this period.";
+    root.appendChild(empty);
+    return;
+  }
+
+  const days = data.days;
+  const maxSats = Math.max(...days.map(d => d.total_sats));
+  const chartW = Math.max(600, days.length * 40);
+  const chartH = 200;
+  const barW = Math.max(8, Math.min(30, (chartW - 80) / days.length - 4));
+  const padL = 60;
+  const padB = 40;
+
+  // Build summary
+  const summary = document.createElement("div");
+  summary.className = "summary";
+  const stats = [
+    { value: formatSats(data.total_sats), label: "Total" },
+    { value: formatSats(data.average_sats), label: "Daily Average" },
+    { value: data.peak_day || "N/A", label: "Peak Day" },
+    { value: formatSats(data.peak_sats), label: "Peak Sats" },
+  ];
+  for (const s of stats) {
+    const card = document.createElement("div");
+    card.className = "stat";
+    const val = document.createElement("div");
+    val.className = "stat-value";
+    val.textContent = s.value;
+    const lbl = document.createElement("div");
+    lbl.className = "stat-label";
+    lbl.textContent = s.label;
+    card.appendChild(val);
+    card.appendChild(lbl);
+    summary.appendChild(card);
+  }
+  root.appendChild(summary);
+
+  // Build SVG chart
+  const ns = "http://www.w3.org/2000/svg";
+  const container = document.createElement("div");
+  container.className = "chart-container";
+
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 " + chartW + " " + chartH);
+
+  // Grid lines
+  const ySteps = 4;
+  for (let i = 0; i <= ySteps; i++) {
+    const val = Math.round((maxSats / ySteps) * i);
+    const y = chartH - padB - ((chartH - padB - 10) / ySteps) * i;
+    const line = document.createElementNS(ns, "line");
+    line.setAttribute("x1", String(padL));
+    line.setAttribute("y1", String(y));
+    line.setAttribute("x2", String(chartW));
+    line.setAttribute("y2", String(y));
+    line.setAttribute("stroke", "var(--border)");
+    line.setAttribute("stroke-dasharray", "4");
+    svg.appendChild(line);
+    const text = document.createElementNS(ns, "text");
+    text.setAttribute("x", String(padL - 8));
+    text.setAttribute("y", String(y + 4));
+    text.setAttribute("text-anchor", "end");
+    text.setAttribute("fill", "var(--ink)");
+    text.setAttribute("font-size", "11");
+    text.setAttribute("opacity", "0.6");
+    text.textContent = String(val);
+    svg.appendChild(text);
+  }
+
+  // Bars
+  for (let i = 0; i < days.length; i++) {
+    const d = days[i];
+    const h = maxSats > 0 ? (d.total_sats / maxSats) * (chartH - padB - 10) : 0;
+    const x = padL + i * ((chartW - padL) / days.length) + barW / 2;
+    const y = chartH - padB - h;
+    const rect = document.createElementNS(ns, "rect");
+    rect.setAttribute("x", String(x));
+    rect.setAttribute("y", String(y));
+    rect.setAttribute("width", String(barW));
+    rect.setAttribute("height", String(h));
+    rect.setAttribute("fill", "var(--accent)");
+    rect.setAttribute("rx", "2");
+    svg.appendChild(rect);
+    if (days.length <= 14) {
+      const label = document.createElementNS(ns, "text");
+      label.setAttribute("x", String(x + barW / 2));
+      label.setAttribute("y", String(chartH - padB + 16));
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("fill", "var(--ink)");
+      label.setAttribute("font-size", "11");
+      label.setAttribute("opacity", "0.6");
+      label.textContent = String(d.date).slice(5);
+      svg.appendChild(label);
+    }
+  }
+
+  container.appendChild(svg);
+  root.appendChild(container);
+
+  // Refresh button
+  const btn = document.createElement("button");
+  btn.className = "btn";
+  btn.textContent = "Refresh";
+  btn.addEventListener("click", () => {
+    app.callServerTool({ name: "booth-payment-history", arguments: {} });
+  });
+  root.appendChild(btn);
+}
+
+let app;
+(async () => {
+  app = new App({ name: "PaymentHistory", version: "1.0.0" }, {});
+
+  const applyTheme = (t) => document.documentElement.classList.toggle("dark", t === "dark");
+  app.onhostcontextchanged = (ctx) => applyTheme(ctx.theme);
+
+  app.ontoolresult = ({ content }) => {
+    const data = JSON.parse(content[0].text);
+    render(data);
+  };
+
+  await app.connect();
+  applyTheme(app.getHostContext()?.theme);
+})();
+</script>
+</body>
+</html>

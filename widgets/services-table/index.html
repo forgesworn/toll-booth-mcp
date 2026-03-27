@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Services</title>
+<style>
+  :root { --ink:#0f1111; --bg:#fff; --card-bg:#f8f9fa; --border:#e0e0e0; --accent:#2563eb; --hover:#f1f5f9; color-scheme:light; }
+  :root.dark { --ink:#e6e6e6; --bg:#1a1a2e; --card-bg:#252540; --border:#3a3a5a; --accent:#60a5fa; --hover:#2a2a4a; color-scheme:dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font: 18px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--ink); padding: 20px; }
+  h1 { font-size: 24px; font-weight: 700; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  th { background: var(--accent); color: #fff; padding: 12px 16px; text-align: left; font-size: 16px; cursor: pointer; user-select: none; white-space: nowrap; }
+  th:hover { opacity: 0.85; }
+  .sort-arrow { margin-left: 4px; font-size: 12px; }
+  td { padding: 12px 16px; border-top: 1px solid var(--border); font-size: 16px; }
+  tr:nth-child(even) td { background: var(--card-bg); }
+  tr:nth-child(odd) td { background: var(--bg); }
+  tr:hover td { background: var(--hover); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .empty { text-align: center; padding: 40px; opacity: 0.6; font-size: 18px; }
+</style>
+</head>
+<body>
+<h1>Service Pricing Tiers</h1>
+<div id="root">
+  <div class="empty">Connecting...</div>
+</div>
+<script type="module">
+/*__EXT_APPS_BUNDLE__*/
+const { App } = globalThis.ExtApps;
+
+let currentData = [];
+let sortCol = "total_sats";
+let sortAsc = false;
+
+const columns = [
+  { key: "amount_sats", label: "Pricing Tier (sats)", numeric: true },
+  { key: "payment_count", label: "Payment Count", numeric: true },
+  { key: "total_sats", label: "Total Sats", numeric: true },
+  { key: "average_sats", label: "Average Sats", numeric: true },
+];
+
+function render(data) {
+  currentData = data;
+  const root = document.getElementById("root");
+
+  while (root.firstChild) root.removeChild(root.firstChild);
+
+  if (!data || data.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "No service data available.";
+    root.appendChild(empty);
+    return;
+  }
+
+  // Sort data
+  const sorted = [...data].sort((a, b) => {
+    const av = a[sortCol];
+    const bv = b[sortCol];
+    return sortAsc ? av - bv : bv - av;
+  });
+
+  const table = document.createElement("table");
+
+  // Header
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  for (const col of columns) {
+    const th = document.createElement("th");
+    th.textContent = col.label;
+    if (sortCol === col.key) {
+      const arrow = document.createElement("span");
+      arrow.className = "sort-arrow";
+      arrow.textContent = sortAsc ? " \u25B2" : " \u25BC";
+      th.appendChild(arrow);
+    }
+    if (col.numeric) th.className = "num";
+    th.addEventListener("click", () => {
+      if (sortCol === col.key) {
+        sortAsc = !sortAsc;
+      } else {
+        sortCol = col.key;
+        sortAsc = true;
+      }
+      render(currentData);
+    });
+    headerRow.appendChild(th);
+  }
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  // Body
+  const tbody = document.createElement("tbody");
+  for (const row of sorted) {
+    const tr = document.createElement("tr");
+    for (const col of columns) {
+      const td = document.createElement("td");
+      if (col.numeric) td.className = "num";
+      td.textContent = Number(row[col.key]).toLocaleString();
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  root.appendChild(table);
+}
+
+(async () => {
+  const app = new App({ name: "ServicesTable", version: "1.0.0" }, {});
+
+  const applyTheme = (t) => document.documentElement.classList.toggle("dark", t === "dark");
+  app.onhostcontextchanged = (ctx) => applyTheme(ctx.theme);
+
+  app.ontoolresult = ({ content }) => {
+    const data = JSON.parse(content[0].text);
+    render(data);
+  };
+
+  await app.connect();
+  applyTheme(app.getHostContext()?.theme);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Revenue Dashboard</title>
+<style>
+  :root { --ink:#0f1111; --bg:#fff; --card-bg:#f8f9fa; --border:#e0e0e0; --c1:#2563eb; --c2:#16a34a; --c3:#ea580c; --c4:#9333ea; color-scheme:light; }
+  :root.dark { --ink:#e6e6e6; --bg:#1a1a2e; --card-bg:#252540; --border:#3a3a5a; --c1:#60a5fa; --c2:#4ade80; --c3:#fb923c; --c4:#c084fc; color-scheme:dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font: 18px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--ink); padding: 20px; }
+  h1 { font-size: 24px; font-weight: 700; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px; border-left: 5px solid var(--c1); }
+  .card:nth-child(2) { border-left-color: var(--c2); }
+  .card:nth-child(3) { border-left-color: var(--c3); }
+  .card:nth-child(4) { border-left-color: var(--c4); }
+  .card-value { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .card:nth-child(1) .card-value { color: var(--c1); }
+  .card:nth-child(2) .card-value { color: var(--c2); }
+  .card:nth-child(3) .card-value { color: var(--c3); }
+  .card:nth-child(4) .card-value { color: var(--c4); }
+  .card-label { font-size: 14px; opacity: 0.7; margin-top: 4px; }
+  .btn { background: var(--c1); color: #fff; border: none; border-radius: 6px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+  .btn:hover { opacity: 0.85; }
+  .empty { text-align: center; padding: 40px; opacity: 0.6; font-size: 18px; }
+</style>
+</head>
+<body>
+<h1>Revenue Dashboard</h1>
+<div id="root">
+  <div class="empty">Connecting...</div>
+</div>
+<script type="module">
+/*__EXT_APPS_BUNDLE__*/
+const { App } = globalThis.ExtApps;
+
+function formatNum(n) {
+  return Number(n).toLocaleString();
+}
+
+function render(data) {
+  const root = document.getElementById("root");
+
+  while (root.firstChild) root.removeChild(root.firstChild);
+
+  if (!data) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "No revenue data available.";
+    root.appendChild(empty);
+    return;
+  }
+
+  const cards = [
+    { value: formatNum(data.total_revenue_sats) + " sats", label: "Total Revenue" },
+    { value: formatNum(data.active_credits), label: "Active Credits" },
+    { value: formatNum(data.total_settlements), label: "Settlements" },
+    { value: formatNum(data.average_payment_sats) + " sats", label: "Avg Payment" },
+  ];
+
+  const grid = document.createElement("div");
+  grid.className = "grid";
+  for (const c of cards) {
+    const card = document.createElement("div");
+    card.className = "card";
+    const val = document.createElement("div");
+    val.className = "card-value";
+    val.textContent = c.value;
+    const lbl = document.createElement("div");
+    lbl.className = "card-label";
+    lbl.textContent = c.label;
+    card.appendChild(val);
+    card.appendChild(lbl);
+    grid.appendChild(card);
+  }
+  root.appendChild(grid);
+
+  const btn = document.createElement("button");
+  btn.className = "btn";
+  btn.textContent = "Refresh";
+  btn.addEventListener("click", () => {
+    app.callServerTool({ name: "booth-revenue", arguments: {} });
+  });
+  root.appendChild(btn);
+}
+
+let app;
+(async () => {
+  app = new App({ name: "RevenueDashboard", version: "1.0.0" }, {});
+
+  const applyTheme = (t) => document.documentElement.classList.toggle("dark", t === "dark");
+  app.onhostcontextchanged = (ctx) => applyTheme(ctx.theme);
+
+  app.ontoolresult = ({ content }) => {
+    const data = JSON.parse(content[0].text);
+    render(data);
+  };
+
+  await app.connect();
+  applyTheme(app.getHostContext()?.theme);
+})();
+</script>
+</body>
+</html>
