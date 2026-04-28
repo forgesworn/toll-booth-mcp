@@ -16,7 +16,7 @@
     "start:http": "TRANSPORT=http node dist/src/index.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/ext-apps": "^1.6.0",
+    "@modelcontextprotocol/ext-apps": "^1.7.1",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "better-sqlite3": "^12.9.0",
     "zod": "^4.3.6"
