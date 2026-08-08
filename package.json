@@ -1,6 +1,6 @@
 {
   "name": "toll-booth-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Admin MCP server with interactive UI widgets for monitoring toll-booth deployments",
   "main": "dist/src/index.js",
