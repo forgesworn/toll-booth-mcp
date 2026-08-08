@@ -9,19 +9,21 @@ export interface ActiveSession {
   payment_hash: string
   balance_sats: number
   deposit_sats: number
-  bearer_token: string
   created_at: string
   expires_at: string
 }
 
 /**
  * Fetch all currently active IETF Payment sessions (not closed, not expired).
+ *
+ * Schema-minimal: credential columns (bearer_token, refund_preimage,
+ * return_invoice) are never read — they must not reach the client context.
  */
 export function getActiveSessions(db: Database.Database): ActiveSession[] {
   return db
     .prepare(
       `SELECT session_id, payment_hash, balance_sats, deposit_sats,
-              bearer_token, created_at, expires_at
+              created_at, expires_at
        FROM sessions
        WHERE closed_at IS NULL
          AND expires_at > datetime('now')

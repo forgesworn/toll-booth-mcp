@@ -146,7 +146,7 @@ describe("sanitise", () => {
       expect(data.payment_hash).toBe("abcdef1234567890")
     })
 
-    it("leaves session_id intact", () => {
+    it("leaves session_id intact (identifier, not a credential)", () => {
       const data = { session_id: "sess-12345" }
       sanitise(data, opts)
       expect(data.session_id).toBe("sess-12345")
@@ -156,6 +156,36 @@ describe("sanitise", () => {
       const data = { created_at: "2026-03-15T14:35:22.000Z" }
       sanitise(data, opts)
       expect(data.created_at).toBe("2026-03-15T14:35:22.000Z")
+    })
+
+    it("still redacts bearer_token", () => {
+      const data = { bearer_token: "token-xyz" }
+      sanitise(data, opts)
+      expect(data.bearer_token).toBe("[redacted]")
+    })
+
+    it("still redacts all credential-class fields", () => {
+      const data = {
+        bearer_token: "tok",
+        macaroon: "mac",
+        settlement_secret: "secret",
+        refund_preimage: "preimage",
+        status_token: "status",
+        token: "claim",
+        bolt11: "lnbc100n1...",
+        return_invoice: "lnbc200n1...",
+      }
+      sanitise(data, opts)
+      for (const value of Object.values(data)) {
+        expect(value).toBe("[redacted]")
+      }
+    })
+
+    it("redacts credentials nested inside other objects", () => {
+      const data = { session: { bearer_token: "tok", balance_sats: 100 } }
+      sanitise(data, opts)
+      expect(data.session.bearer_token).toBe("[redacted]")
+      expect(data.session.balance_sats).toBe(100)
     })
   })
 })

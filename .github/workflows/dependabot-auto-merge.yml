@@ -1,8 +1,11 @@
 name: Dependabot auto-merge
 
-# Auto-merges dependabot PRs for patch/minor bumps once required checks pass.
-# Majors are never auto-merged -- they open a normal PR for deliberate review.
-# Security advisories always open their own PR and follow the same gate.
+# Auto-merges dependabot PRs for low-risk bumps once required checks pass:
+#   - devDependencies: patch and minor updates
+#   - runtime dependencies: patch updates only
+# Runtime minor/major bumps and all majors open a normal PR for deliberate
+# human review. Security advisories always open their own PR and follow the
+# same gate.
 #
 # Synced from forgesworn/.github/templates/dependabot/dependabot-auto-merge.yml.
 
@@ -21,8 +24,20 @@ jobs:
         id: meta
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
 
-      - name: Enable auto-merge for patch/minor
-        if: steps.meta.outputs.update-type == 'version-update:semver-patch' || steps.meta.outputs.update-type == 'version-update:semver-minor'
+      - name: Enable auto-merge for devDependency patch/minor
+        if: >-
+          steps.meta.outputs.dependency-type == 'direct:development' &&
+          (steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+           steps.meta.outputs.update-type == 'version-update:semver-minor')
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge --auto --squash --delete-branch "$PR_URL"
+
+      - name: Enable auto-merge for runtime dependency patch only
+        if: >-
+          steps.meta.outputs.dependency-type == 'direct:production' &&
+          steps.meta.outputs.update-type == 'version-update:semver-patch'
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

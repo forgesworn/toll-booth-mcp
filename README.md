@@ -42,8 +42,9 @@ All configuration via environment variables:
 | `TRANSPORT` | `stdio` | `stdio` or `http` |
 | `PORT` | `3500` | HTTP listen port (HTTP transport only) |
 | `BIND_ADDRESS` | `127.0.0.1` | HTTP bind address (HTTP transport only) |
-| `REDACT_PII` | `true` | Hash payment hashes and strip session IDs before returning data to the client |
+| `REDACT_PII` | `true` | Hash payment hashes and strip session IDs before returning data to the client (credential fields are always redacted) |
 | `ALLOW_DETAIL_TOOLS` | `false` | Register `booth-recent-payments`, `booth-credits`, `booth-sessions` (return PII-adjacent rows) |
+| `ALLOW_INSECURE_REMOTE` | `false` | Permit the HTTP transport to bind a non-loopback address without TLS |
 
 Setting `REDACT_PII=false` emits a stderr warning — full identifiers
 are then exposed to whichever AI platform drives the MCP client.
@@ -76,6 +77,17 @@ On startup the server prints a bearer token to stderr. Send it as the
 `Authorization: Bearer <token>` header from your MCP client. The HTTP
 server rate-limits at 60 requests per minute per IP and validates the
 bearer with constant-time comparison.
+
+The HTTP transport is plaintext. The server refuses to bind anything other
+than a loopback address (`127.0.0.1`, `::1`, `localhost`) unless
+`ALLOW_INSECURE_REMOTE=true` is set. For remote deployments, keep the
+server on loopback and front it with a TLS-terminating reverse proxy
+(e.g. nginx, Caddy) so the bearer token never crosses the network in the
+clear:
+
+```
+MCP client ──TLS──▶ reverse proxy (443) ──plaintext──▶ toll-booth-mcp (127.0.0.1:3500)
+```
 
 ## Tools
 
