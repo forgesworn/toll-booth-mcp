@@ -12,6 +12,7 @@
     "build:server": "tsc -p tsconfig.server.json",
     "build:widgets": "node scripts/build-widgets.mjs",
     "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "start": "node dist/src/index.js",
     "start:http": "TRANSPORT=http node dist/src/index.js"
   },
