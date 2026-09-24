@@ -1,0 +1,46 @@
+# toll-booth-mcp
+
+> Monitoring a toll-booth Lightning payment gateway usually means querying its
+> SQLite database by hand. toll-booth-mcp is a read-only MCP server that
+> exposes payment, service and revenue analytics as MCP tools, so an AI
+> assistant or MCP client can answer questions about a deployment directly.
+
+For operators of a [toll-booth](https://github.com/forgesworn/toll-booth)
+Lightning payment gateway who want live visibility from an MCP client
+(Claude Desktop, Cursor, Zed, etc.) without writing SQL. The server opens
+the database read-only and never registers a write tool, so a compromised
+MCP client cannot alter toll-booth state. Three tools register interactive
+UI widgets for clients that support them; others get the JSON response.
+
+## Getting Started
+
+```sh
+git clone https://github.com/forgesworn/toll-booth-mcp.git
+cd toll-booth-mcp
+npm install
+npm run build
+TOLL_BOOTH_DB=/path/to/toll-booth.db npm start
+```
+
+Configure the MCP client to run `node dist/src/index.js` with
+`TOLL_BOOTH_DB` pointing at the toll-booth database.
+
+## Key Concepts
+
+- **Read-only connection**: the database opens with `{ readonly: true, fileMustExist: true }`; no tool can write.
+- **PII redaction**: payment hashes and session IDs are redacted by default (`REDACT_PII=true`); detail tools stay off unless `ALLOW_DETAIL_TOOLS=true`.
+- **Widgets**: `booth-payment-history`, `booth-services` and `booth-revenue` register interactive UI resources via the MCP ext-apps bundle; clients without widget support get the same data as JSON.
+- **Transports**: `stdio` (default, for local MCP clients) or `http` (bearer-token auth, loopback-only unless `ALLOW_INSECURE_REMOTE=true`).
+
+## API Surface
+
+- `booth-status`: database connection state.
+- `booth-payment-history`: sats received over a window (default 30 days), chart plus summary.
+- `booth-services`: active gated endpoints grouped by pricing tier with payment statistics.
+- `booth-revenue`: aggregate revenue statistics across all toll-booth payments.
+- `booth-recent-payments`, `booth-credits`, `booth-sessions`: per-row detail tools, opt-in via `ALLOW_DETAIL_TOOLS=true`.
+
+## Optional
+
+- [README](README.md): full configuration reference and HTTP transport setup.
+- [CHANGELOG](CHANGELOG.md): release history.
