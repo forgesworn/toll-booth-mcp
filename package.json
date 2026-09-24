@@ -3,6 +3,26 @@
   "version": "0.2.0",
   "type": "module",
   "description": "Admin MCP server with interactive UI widgets for monitoring toll-booth deployments",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "toll-booth",
+    "lightning",
+    "lightning-network",
+    "bitcoin",
+    "payments",
+    "l402",
+    "sqlite",
+    "analytics",
+    "monitoring",
+    "admin",
+    "read-only"
+  ],
+  "homepage": "https://github.com/forgesworn/toll-booth-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/forgesworn/toll-booth-mcp.git"
+  },
   "main": "dist/src/index.js",
   "bin": {
     "toll-booth-mcp": "dist/src/index.js"
