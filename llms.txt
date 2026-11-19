@@ -12,6 +12,12 @@ the database read-only and never registers a write tool, so a compromised
 MCP client cannot alter toll-booth state. Three tools register interactive
 UI widgets for clients that support them; others get the JSON response.
 
+## ForgeSworn ecosystem
+
+- [ForgeSworn library guide](https://forgesworn.dev/llms.txt): Find related libraries, tools and integration guides by task and runtime.
+- [ForgeSworn on GitHub](https://github.com/forgesworn): Browse the organisation’s public repositories.
+- [Project source](https://github.com/forgesworn/toll-booth-mcp): Canonical source repository, documentation and release information.
+
 ## Getting Started
 
 ```sh
